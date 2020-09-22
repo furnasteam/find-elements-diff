@@ -1,0 +1,30 @@
+{
+  "manifest_version": 2,
+
+  "name": "Find elements diff",
+  "description": "Take screenshots of elements and compare images",
+  "version": "1.0",
+  "devtools_page": "devtools.html",
+
+  "browser_action": {
+    "default_icon": "icon.png"
+  },
+
+  "background": {
+    "scripts": [
+      "build/background.js"
+    ],
+    "persistent": true
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["build/content.js"]
+    }
+  ],
+
+  "permissions": [
+    "<all_urls>"
+  ]
+}

@@ -7,7 +7,7 @@ import {
   cropAndSaveSecondElementScreenShotApi,
   isElementInViewPortApi,
   makeFixedElementsInvisibleApi,
-  makeFixedElementsVisibleApi,
+  makeFixedElementsVisibleApi, saveFirstImageFromFileApi, saveSecondImageFromFileApi,
   scrollOneScreenDownApi,
   scrollTopApi
 } from './models/contentScriptApi';
@@ -249,6 +249,10 @@ async function cropAndSaveElementScreenShot(element, screenShots, chromeAction) 
   chrome.runtime.sendMessage({chromeAction, dataUrl: croppedImageDataUrl, domain: document.domain});
 }
 
+function saveImageFromFile(imageFromFile, chromeAction) {
+  chrome.runtime.sendMessage({chromeAction, dataUrl: imageFromFile, domain: 'from file'});
+}
+
 //API
 
 window[isElementInViewPortApi] = function (element) {
@@ -277,6 +281,14 @@ window[cropAndSaveFirstElementScreenShotApi] = function (element, screenShots) {
 
 window[cropAndSaveSecondElementScreenShotApi] = async function (element, screenShots) {
   cropAndSaveElementScreenShot(element, screenShots, SET_SECOND_IMAGE);
+}
+
+window[saveFirstImageFromFileApi] = async function (imageFromFile) {
+  saveImageFromFile(imageFromFile, SET_FIRST_IMAGE);
+}
+
+window[saveSecondImageFromFileApi] = async function (imageFromFile) {
+  saveImageFromFile(imageFromFile, SET_SECOND_IMAGE);
 }
 
 window[compareScreenShotsAndDownloadApi] = function (firstElementScreenShot, secondElementScreenShot) {

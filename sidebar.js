@@ -2,13 +2,14 @@ import {SET_FIRST_IMAGE, SET_SECOND_IMAGE} from './models/actions';
 import {
   callApi,
   callApiWithSelectedElement,
-  compareScreenShotsAndDownloadApi, compareScreenShotsAndShowApi,
+  compareScreenShotsAndDownloadApi,
+  compareScreenShotsAndShowApi,
   consoleLogApi,
   cropAndSaveFirstElementScreenShotApi,
   cropAndSaveSecondElementScreenShotApi,
   isElementInViewPortApi,
   makeFixedElementsInvisibleApi,
-  makeFixedElementsVisibleApi,
+  makeFixedElementsVisibleApi, saveFirstImageFromFileApi, saveSecondImageFromFileApi,
   scrollOneScreenDownApi,
   scrollTopApi
 } from './models/contentScriptApi';
@@ -23,6 +24,9 @@ const FIRST_ELEMENT_SELECT_ID = 'first-element';
 const SECOND_ELEMENT_SELECT_ID = 'second-element';
 const COMPARE_AND_DOWNLOAD_ID = 'compare-and-download';
 const COMPARE_AND_SHOW_ID = 'compare-and-show';
+
+const FIRST_IMAGE_FILE_INPUT_ID = 'first-image-file';
+const SECOND_IMAGE_FILE_INPUT_ID = 'second-image-file';
 
 const RESULT_ID = 'result';
 
@@ -65,6 +69,8 @@ const ContentScript = {
   isElementInViewPort: () => callContentApi(isElementInViewPortApi, callApiWithSelectedElement),
   cropAndSaveFirstElementScreenShot: (screenShots) => callContentApi(cropAndSaveFirstElementScreenShotApi, callApiWithSelectedElement, screenShots),
   cropAndSaveSecondElementScreenShot: (screenShots) => callContentApi(cropAndSaveSecondElementScreenShotApi, callApiWithSelectedElement, screenShots),
+  saveFirstImageFromFile: (imageFromFile) => callContentApi(saveFirstImageFromFileApi, callApi, imageFromFile),
+  saveSecondImageFromFile: (imageFromFile) => callContentApi(saveSecondImageFromFileApi, callApi, imageFromFile),
   consoleLog: (...params) => callContentApi(consoleLogApi, callApi, ...params)
 }
 
@@ -88,6 +94,10 @@ function addListenerOnClick(elementId, callback) {
   document.getElementById(elementId).addEventListener('click', callback);
 }
 
+function addListenerOnChange(elementId, callback) {
+  document.getElementById(elementId).addEventListener('change', callback);
+}
+
 function handleSelectElementClick(cropAndSaveFunction) {
   return async function () {
     const elementIsInViewPort = await ContentScript.isElementInViewPort();
@@ -104,11 +114,35 @@ function handleCompareElementsAndShowClick() {
   ContentScript.compareScreenShotsAndShow(firstImage, secondImage)
 }
 
+function readFileFromFileInput(fileInput) {
+  return new Promise(resolve => {
+    var file = fileInput.files[0];
+    var reader = new FileReader();
+
+    reader.onloadend = function () {
+      resolve(reader.result);
+    }
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleFirstImageUpload(event) {
+  const dataUrl = await readFileFromFileInput(event.target);
+  ContentScript.saveFirstImageFromFile(dataUrl);
+}
+
+async function handleSecondImageUpload(event) {
+  const dataUrl = await readFileFromFileInput(event.target);
+  ContentScript.saveSecondImageFromFile(dataUrl);
+}
+
 function addListeners() {
   addListenerOnClick(FIRST_ELEMENT_SELECT_ID, handleSelectElementClick(ContentScript.cropAndSaveFirstElementScreenShot));
   addListenerOnClick(SECOND_ELEMENT_SELECT_ID, handleSelectElementClick(ContentScript.cropAndSaveSecondElementScreenShot));
   addListenerOnClick(COMPARE_AND_DOWNLOAD_ID, handleCompareElementsAndDownloadClick);
   addListenerOnClick(COMPARE_AND_SHOW_ID, handleCompareElementsAndShowClick);
+  addListenerOnChange(FIRST_IMAGE_FILE_INPUT_ID, handleFirstImageUpload);
+  addListenerOnChange(SECOND_IMAGE_FILE_INPUT_ID, handleSecondImageUpload);
 }
 
 function activateResult() {

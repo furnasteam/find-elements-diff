@@ -52,6 +52,7 @@
             letter-spacing: 0;
             line-height: 18px;
             margin-bottom: 8px;
+            max-width: 200px;
         }
 
         .link-style {
@@ -109,14 +110,26 @@
 </div>
 <div class="row">
     <div class="card">
-        <div class="card-title">1. Select an element and <span class="link-style" id="first-element">click here</span></div>
+        <div class="card-title">1. Select an element and <span class="link-style" id="first-element">click here</span>
+            or
+            <label class="link-style">
+                <input type="file" style="display: none;" accept="image/png" id="first-image-file">
+                upload
+            </label> (PNG file)
+        </div>
         <div class="card-preview-box" id="first-element-container">
             <span class="card-preview-text">Preview your element</span>
         </div>
         <div class="card-address" id="first-element-address">pageaddress.com</div>
     </div>
     <div class="card">
-        <div class="card-title">2. Select an element and <span class="link-style" id="second-element">click here</span></div>
+        <div class="card-title">2. Select an element and <span class="link-style" id="second-element">click here</span>
+            or
+            <label class="link-style">
+                <input type="file" style="display: none;" accept="image/png" id="second-image-file">
+                upload
+            </label> (PNG file)
+        </div>
         <div class="card-preview-box" id="second-element-container">
             <span class="card-preview-text">Preview your element</span>
         </div>

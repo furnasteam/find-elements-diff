@@ -18,9 +18,9 @@ import mergeImages from 'merge-images';
 function createImage(dataURL, element) {
   return new Promise(resolve => {
     const {x, y, width, height} = element.getBoundingClientRect();
-    console.log('width, height', width, height);
+    const {devicePixelRatio} = window;
     // create a canvas
-    var canvas = createCanvas(width, height);
+    var canvas = createCanvas(width * devicePixelRatio, height * devicePixelRatio);
     // get the context of your canvas
     var context = canvas.getContext('2d');
     // create a new image object
@@ -37,7 +37,7 @@ function createImage(dataURL, element) {
       // parameter 7: destination y coordinate
       // parameter 8: destination width
       // parameter 9: destination height
-      context.drawImage(croppedImage, x, y, width, height, 0, 0, width, height);
+      context.drawImage(croppedImage, x*devicePixelRatio, y*devicePixelRatio, width*devicePixelRatio, height*devicePixelRatio, 0, 0, width*devicePixelRatio, height*devicePixelRatio);
 
       // canvas.toDataURL() contains your cropped image
       resolve(canvas.toDataURL());
@@ -225,19 +225,20 @@ function makeFixedElementsVisible() {
 }
 
 async function cropAndSaveElementScreenShot(element, screenShots, chromeAction) {
+  const {devicePixelRatio} = window;
   let fullScreenShot = screenShots[0];
   if (screenShots.length > 1) {
     function calculateLastScreenShotYOffset(screenShot, index) {
       const {height} = getImageSize(screenShot);
-      return window.innerHeight * (index - 1) + document.documentElement.scrollHeight % window.innerHeight;
+      return window.innerHeight * devicePixelRatio * (index - 1) + document.documentElement.scrollHeight % ( window.innerHeight * devicePixelRatio);
     }
 
     const mergeOptions = [screenShots.map((screenShot, index) => ({
       src: screenShot,
       x: 0,
-      y: index === screenShots.length - 1 ? calculateLastScreenShotYOffset(screenShot, index) : window.innerHeight * index
+      y: index === screenShots.length - 1 ? calculateLastScreenShotYOffset(screenShot, index) : window.innerHeight * index * devicePixelRatio 
     })), {
-      height: document.documentElement.scrollHeight
+      height: document.documentElement.scrollHeight * devicePixelRatio
     }]
 
     fullScreenShot = await mergeImages(...mergeOptions);

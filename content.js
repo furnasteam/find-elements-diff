@@ -246,11 +246,11 @@ async function cropAndSaveElementScreenShot(element, screenShots, chromeAction) 
   }
 
   const croppedImageDataUrl = await createImage(fullScreenShot, element);
-  chrome.runtime.sendMessage({chromeAction, dataUrl: croppedImageDataUrl, domain: document.domain});
+  browser.runtime.sendMessage({chromeAction, dataUrl: croppedImageDataUrl, domain: document.domain});
 }
 
 function saveImageFromFile(imageFromFile, chromeAction) {
-  chrome.runtime.sendMessage({chromeAction, dataUrl: imageFromFile, domain: 'from file'});
+  browser.runtime.sendMessage({chromeAction, dataUrl: imageFromFile, domain: 'from file'});
 }
 
 //API

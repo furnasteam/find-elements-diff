@@ -2,3 +2,4 @@ node_modules/
 misc.xml
 .idea
 build
+.DS_Store

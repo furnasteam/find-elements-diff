@@ -1,4 +1,4 @@
-import {SET_FIRST_IMAGE, SET_SECOND_IMAGE} from './models/actions';
+import {CAPTURE_VISIBLE_TAB, EXECUTE_SCRIPT, INITIALIZE_SIDEBAR, SET_FIRST_IMAGE, SET_FIRST_IMAGE_SIDEBAR, SET_SECOND_IMAGE, SET_SECOND_IMAGE_SIDEBAR} from './models/actions';
 import {
   callApi,
   callApiWithSelectedElement,
@@ -9,9 +9,11 @@ import {
   cropAndSaveSecondElementScreenShotApi,
   isElementInViewPortApi,
   makeFixedElementsInvisibleApi,
-  makeFixedElementsVisibleApi, saveFirstImageFromFileApi, saveSecondImageFromFileApi,
+  makeFixedElementsVisibleApi,
+  saveFirstImageFromFileApi,
+  saveSecondImageFromFileApi,
   scrollOneScreenDownApi,
-  scrollTopApi
+  scrollTopApi, SELECTED_ELEMENT_ATTRIBUTE
 } from './models/contentScriptApi';
 
 const FIRST_ELEMENT_CONTAINER_ID = 'first-element-container';
@@ -30,17 +32,16 @@ const SECOND_IMAGE_FILE_INPUT_ID = 'second-image-file';
 
 const RESULT_ID = 'result';
 
-const bg = chrome.extension.getBackgroundPage();
 
-let {firstImage, secondImage, firstElementDomain, secondElementDomain} = bg;
+let firstImage, secondImage, firstElementDomain, secondElementDomain;
 
-function callContentApi(apiName, apiFormatter = callApi, ...params) {
-  return new Promise(resolve => {
-    chrome.devtools.inspectedWindow.eval(apiFormatter(apiName, ...params),
-      {useContentScriptContext: true}, function (result) {
-        resolve(result);
-      });
-  })
+async function callContentApi(apiName, apiFormatter = callApi, ...params) {
+  await browser.devtools.inspectedWindow.eval(`$0.setAttribute('${SELECTED_ELEMENT_ATTRIBUTE}', '${SELECTED_ELEMENT_ATTRIBUTE}')`);
+  return browser.runtime.sendMessage({
+    chromeAction: EXECUTE_SCRIPT,
+    tabId: browser.devtools.inspectedWindow.tabId,
+    script: apiFormatter(apiName, ...params)
+  });
 }
 
 function sleep500() {
@@ -52,11 +53,9 @@ function sleep500() {
 }
 
 function captureVisibleTab() {
-  return new Promise(resolve => {
-    chrome.tabs.captureVisibleTab(null, {format: "png"}, function (dataUrl) {
-      resolve(dataUrl);
-    });
-  })
+  return browser.runtime.sendMessage({
+    chromeAction: CAPTURE_VISIBLE_TAB
+  });
 }
 
 const ContentScript = {
@@ -182,15 +181,18 @@ function renderElementPreview(containerId, imageDataUrl, domain) {
 window.addEventListener('DOMContentLoaded', () => {
   addListeners();
   updateSidebarPage();
+  browser.runtime.sendMessage({
+    chromeAction: INITIALIZE_SIDEBAR
+  });
 });
 
-chrome.runtime.onMessage.addListener(request => {
+browser.runtime.onMessage.addListener(request => {
   switch (request.chromeAction) {
-    case SET_FIRST_IMAGE:
+    case SET_FIRST_IMAGE_SIDEBAR:
       firstImage = request.dataUrl;
       firstElementDomain = request.domain;
       break;
-    case SET_SECOND_IMAGE:
+    case SET_SECOND_IMAGE_SIDEBAR:
       secondImage = request.dataUrl;
       secondElementDomain = request.domain;
       break;

@@ -18,7 +18,8 @@ import mergeImages from 'merge-images';
 function createImage(dataURL, element) {
   return new Promise(resolve => {
     const {x, y, width, height} = element.getBoundingClientRect();
-    const {devicePixelRatio} = window;
+    // const {devicePixelRatio} = window;
+    const devicePixelRatio = 1;
     // create a canvas
     var canvas = createCanvas(width * devicePixelRatio, height * devicePixelRatio);
     // get the context of your canvas
@@ -225,7 +226,8 @@ function makeFixedElementsVisible() {
 }
 
 async function cropAndSaveElementScreenShot(element, screenShots, chromeAction) {
-  const {devicePixelRatio} = window;
+  // const {devicePixelRatio} = window;
+  const devicePixelRatio = 1;
   let fullScreenShot = screenShots[0];
   if (screenShots.length > 1) {
     function calculateLastScreenShotYOffset(screenShot, index) {

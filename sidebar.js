@@ -36,7 +36,7 @@ const RESULT_ID = 'result';
 let firstImage, secondImage, firstElementDomain, secondElementDomain;
 
 async function callContentApi(apiName, apiFormatter = callApi, ...params) {
-  await browser.devtools.inspectedWindow.eval(`$0.setAttribute('${SELECTED_ELEMENT_ATTRIBUTE}', '${SELECTED_ELEMENT_ATTRIBUTE}')`);
+  await browser.devtools.inspectedWindow.eval(`document.querySelector('[${SELECTED_ELEMENT_ATTRIBUTE}]') && document.querySelector('[${SELECTED_ELEMENT_ATTRIBUTE}]').removeAttribute('${SELECTED_ELEMENT_ATTRIBUTE}'); $0.setAttribute('${SELECTED_ELEMENT_ATTRIBUTE}', '${SELECTED_ELEMENT_ATTRIBUTE}')`);
   return browser.runtime.sendMessage({
     chromeAction: EXECUTE_SCRIPT,
     tabId: browser.devtools.inspectedWindow.tabId,

@@ -234,7 +234,7 @@ async function cropAndSaveElementScreenShot(element, screenShots, chromeAction) 
     const mergeOptions = [screenShots.map((screenShot, index) => ({
       src: screenShot,
       x: 0,
-      y: index === screenShots.length - 1 ? calculateLastScreenShotYOffset(screenShot, index) : window.innerHeight * index; 
+      y: index === screenShots.length - 1 ? calculateLastScreenShotYOffset(screenShot, index) : window.innerHeight * index 
     })), {
       height: document.documentElement.scrollHeight
     }]

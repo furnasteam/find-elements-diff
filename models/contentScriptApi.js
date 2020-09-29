@@ -1,4 +1,6 @@
-const API_PREFIX = 'tabsDiff'
+export const API_PREFIX = 'tabsDiff'
+
+export const SELECTED_ELEMENT_ATTRIBUTE = 'selected-element-attribute'
 
 function getNameWithPrefix(name) {
   return `${API_PREFIX}__${name}`
@@ -22,5 +24,5 @@ export function callApi(apiName,...params) {
 }
 
 export function callApiWithSelectedElement(apiName,...params) {
-  return `${apiName}($0, ${params.map(JSON.stringify).join()})`;
+  return `${apiName}(document.querySelector('[${SELECTED_ELEMENT_ATTRIBUTE}]'), ${params.map(JSON.stringify).join()})`;
 }

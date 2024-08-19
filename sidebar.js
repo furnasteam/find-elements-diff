@@ -1,4 +1,4 @@
-import {SET_FIRST_IMAGE, SET_SECOND_IMAGE} from './models/actions';
+import {REQUEST_DATA, SET_FIRST_IMAGE, SET_SECOND_IMAGE} from './models/actions';
 import {
   callApi,
   callApiWithSelectedElement,
@@ -7,12 +7,13 @@ import {
   consoleLogApi,
   cropAndSaveFirstElementScreenShotApi,
   cropAndSaveSecondElementScreenShotApi,
-  isElementInViewPortApi,
+  isElementInViewPortApi, isElementPartiallyInViewPortApi,
   makeFixedElementsInvisibleApi,
   makeFixedElementsVisibleApi, saveFirstImageFromFileApi, saveSecondImageFromFileApi,
   scrollOneScreenDownApi,
-  scrollTopApi
+  scrollTopApi, tryToScrollToElementApi
 } from './models/contentScriptApi';
+
 
 const FIRST_ELEMENT_CONTAINER_ID = 'first-element-container';
 const SECOND_ELEMENT_CONTAINER_ID = 'second-element-container';
@@ -30,9 +31,10 @@ const SECOND_IMAGE_FILE_INPUT_ID = 'second-image-file';
 
 const RESULT_ID = 'result';
 
-const bg = chrome.extension.getBackgroundPage();
 
-let {firstImage, secondImage, firstElementDomain, secondElementDomain} = bg;
+let {firstImage, secondImage, firstElementDomain, secondElementDomain} = {}
+
+chrome.runtime.sendMessage({chromeAction: REQUEST_DATA});
 
 function callContentApi(apiName, apiFormatter = callApi, ...params) {
   return new Promise(resolve => {
@@ -67,6 +69,8 @@ const ContentScript = {
   compareScreenShotsAndDownload: (firstElementScreenShot, secondElementScreenShot) => callContentApi(compareScreenShotsAndDownloadApi, callApi, firstElementScreenShot, secondElementScreenShot),
   compareScreenShotsAndShow: (firstElementScreenShot, secondElementScreenShot) => callContentApi(compareScreenShotsAndShowApi, callApi, firstElementScreenShot, secondElementScreenShot),
   isElementInViewPort: () => callContentApi(isElementInViewPortApi, callApiWithSelectedElement),
+  isElementPartiallyInViewPort: () => callContentApi(isElementPartiallyInViewPortApi, callApiWithSelectedElement),
+  tryToScrollToElement: () => callContentApi(tryToScrollToElementApi, callApiWithSelectedElement),
   cropAndSaveFirstElementScreenShot: (screenShots) => callContentApi(cropAndSaveFirstElementScreenShotApi, callApiWithSelectedElement, screenShots),
   cropAndSaveSecondElementScreenShot: (screenShots) => callContentApi(cropAndSaveSecondElementScreenShotApi, callApiWithSelectedElement, screenShots),
   saveFirstImageFromFile: (imageFromFile) => callContentApi(saveFirstImageFromFileApi, callApi, imageFromFile),
@@ -78,13 +82,24 @@ async function collectFullPageScreenShots() {
   const screenShots = [];
   await ContentScript.scrollTop();
   await sleep500();
-  screenShots.push(await captureVisibleTab());
+  let capturingStarted = await ContentScript.isElementPartiallyInViewPort();
+  ContentScript.consoleLog('capturingStarted', capturingStarted);
+  if (capturingStarted) {
+    screenShots.push(await captureVisibleTab());
+  }
   await ContentScript.makeFixedElementsInvisible();
   let reachedBottom = false;
   do {
     reachedBottom = await ContentScript.scrollOneScreenDown();
     await sleep500();
-    screenShots.push(await captureVisibleTab());
+    const isElementPartiallyInViewPort = await ContentScript.isElementPartiallyInViewPort();
+    ContentScript.consoleLog('isElementPartiallyInViewPort', isElementPartiallyInViewPort);
+    if (isElementPartiallyInViewPort) {
+      screenShots.push(await captureVisibleTab());
+      capturingStarted = true;
+    } else if (capturingStarted) {
+      break;
+    }
   } while (!reachedBottom);
   await ContentScript.makeFixedElementsVisible();
   return screenShots;
@@ -100,8 +115,21 @@ function addListenerOnChange(elementId, callback) {
 
 function handleSelectElementClick(cropAndSaveFunction) {
   return async function () {
-    const elementIsInViewPort = await ContentScript.isElementInViewPort();
-    const screenShots = elementIsInViewPort ? [await captureVisibleTab()] : await collectFullPageScreenShots();
+    let elementIsInViewPort = await ContentScript.isElementInViewPort();
+    let screenShots = [];
+    if (elementIsInViewPort) {
+      screenShots.push(await captureVisibleTab())
+    } else if (await ContentScript.tryToScrollToElement()) {
+      await sleep500();
+      elementIsInViewPort = await ContentScript.isElementInViewPort();
+      if (elementIsInViewPort) {
+        screenShots.push(await captureVisibleTab())
+      } else {
+        screenShots = await collectFullPageScreenShots();
+      }
+    } else {
+      screenShots = await collectFullPageScreenShots();
+    }
     cropAndSaveFunction(screenShots);
   }
 }
@@ -146,10 +174,13 @@ function addListeners() {
 }
 
 function activateResult() {
+  ContentScript.consoleLog('document.getElementById(RESULT_ID)', document.getElementById(RESULT_ID))
   document.getElementById(RESULT_ID).classList.add('result-text_active');
 }
 
 function updateSidebarPage() {
+  ContentScript.consoleLog('firstImage', firstImage)
+  ContentScript.consoleLog('secondImage', secondImage)
   if (firstImage) {
     renderElementPreview(FIRST_ELEMENT_CONTAINER_ID, firstImage, firstElementDomain);
   }

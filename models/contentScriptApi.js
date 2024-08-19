@@ -13,12 +13,14 @@ export const cropAndSaveSecondElementScreenShotApi = getNameWithPrefix('cropAndS
 export const saveFirstImageFromFileApi = getNameWithPrefix('saveFirstImageFromFileApi');
 export const saveSecondImageFromFileApi = getNameWithPrefix('saveSecondImageFromFileApi');
 export const isElementInViewPortApi = getNameWithPrefix('isElementInViewPortApi');
+export const isElementPartiallyInViewPortApi = getNameWithPrefix('isElementPartiallyInViewPortApi');
+export const tryToScrollToElementApi = getNameWithPrefix('tryToScrollToElement');
 export const compareScreenShotsAndDownloadApi = getNameWithPrefix('compareScreenShotsAndDownloadApi');
 export const compareScreenShotsAndShowApi = getNameWithPrefix('compareScreenShotsAndShowApi');
 export const consoleLogApi = 'console.log';
 
 export function callApi(apiName,...params) {
-  return `${apiName}(${params.map(JSON.stringify).join()})`;
+  return `window.${apiName}(${params.map(JSON.stringify).join()})`;
 }
 
 export function callApiWithSelectedElement(apiName,...params) {

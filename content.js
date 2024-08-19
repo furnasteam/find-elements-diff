@@ -5,11 +5,11 @@ import {
   compareScreenShotsAndShowApi,
   cropAndSaveFirstElementScreenShotApi,
   cropAndSaveSecondElementScreenShotApi,
-  isElementInViewPortApi,
+  isElementInViewPortApi, isElementPartiallyInViewPortApi,
   makeFixedElementsInvisibleApi,
   makeFixedElementsVisibleApi, saveFirstImageFromFileApi, saveSecondImageFromFileApi,
   scrollOneScreenDownApi,
-  scrollTopApi
+  scrollTopApi, tryToScrollToElementApi
 } from './models/contentScriptApi';
 import mergeImages from 'merge-images';
 
@@ -37,7 +37,7 @@ function createImage(dataURL, element) {
       // parameter 7: destination y coordinate
       // parameter 8: destination width
       // parameter 9: destination height
-      context.drawImage(croppedImage, x*devicePixelRatio, y*devicePixelRatio, width*devicePixelRatio, height*devicePixelRatio, 0, 0, width*devicePixelRatio, height*devicePixelRatio);
+      context.drawImage(croppedImage, x * devicePixelRatio, (y % window.innerHeight) * devicePixelRatio, width * devicePixelRatio, height * devicePixelRatio, 0, 0, width * devicePixelRatio, height * devicePixelRatio);
 
       // canvas.toDataURL() contains your cropped image
       resolve(canvas.toDataURL());
@@ -64,6 +64,14 @@ function isInViewport(element) {
     rect.left >= 0 &&
     rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
     rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+  );
+}
+
+function isElementPartiallyInViewport(element) {
+  const rect = element.getBoundingClientRect();
+  return (
+    rect.top < (window.innerHeight || document.documentElement.clientHeight) &&
+    rect.bottom > 0
   );
 }
 
@@ -194,9 +202,13 @@ function scrollTop() {
   window.scrollTo(0, 0);
 }
 
+function reachedBottom() {
+  return Math.abs(document.documentElement.scrollTop + window.innerHeight - document.documentElement.scrollHeight) < 1;
+}
+
 function scrollOnePageDown() {
   window.scrollBy(0, window.innerHeight);
-  return document.documentElement.scrollTop + window.innerHeight === document.documentElement.scrollHeight;
+  return reachedBottom();
 }
 
 function mapAllFixedElements(iteratee) {
@@ -230,15 +242,15 @@ async function cropAndSaveElementScreenShot(element, screenShots, chromeAction) 
   if (screenShots.length > 1) {
     function calculateLastScreenShotYOffset(screenShot, index) {
       const {height} = getImageSize(screenShot);
-      return window.innerHeight * devicePixelRatio * (index - 1) + document.documentElement.scrollHeight % ( window.innerHeight * devicePixelRatio);
+      return window.innerHeight * devicePixelRatio * (index - 1) + document.documentElement.scrollHeight % (window.innerHeight * devicePixelRatio);
     }
 
     const mergeOptions = [screenShots.map((screenShot, index) => ({
       src: screenShot,
       x: 0,
-      y: index === screenShots.length - 1 ? calculateLastScreenShotYOffset(screenShot, index) : window.innerHeight * index * devicePixelRatio 
+      y: index === screenShots.length - 1 && reachedBottom() ? calculateLastScreenShotYOffset(screenShot, index) : window.innerHeight * index * devicePixelRatio
     })), {
-      height: document.documentElement.scrollHeight * devicePixelRatio
+      height: window.innerHeight * screenShots.length * devicePixelRatio
     }]
 
     fullScreenShot = await mergeImages(...mergeOptions);
@@ -253,10 +265,26 @@ function saveImageFromFile(imageFromFile, chromeAction) {
   chrome.runtime.sendMessage({chromeAction, dataUrl: imageFromFile, domain: 'from file'});
 }
 
+function tryToScrollToElement(element) {
+  if (element.clientHeight < window.innerHeight) {
+    element.scrollIntoView({behavior: 'instant', block: 'center'});
+    return true
+  }
+  return false;
+}
+
 //API
 
 window[isElementInViewPortApi] = function (element) {
   return isInViewport(element);
+}
+
+window[isElementPartiallyInViewPortApi] = function (element) {
+  return isElementPartiallyInViewport(element);
+}
+
+window[tryToScrollToElementApi] = function (element) {
+  return tryToScrollToElement(element);
 }
 
 window[scrollTopApi] = function () {
@@ -298,3 +326,5 @@ window[compareScreenShotsAndDownloadApi] = function (firstElementScreenShot, sec
 window[compareScreenShotsAndShowApi] = function (firstElementScreenShot, secondElementScreenShot) {
   compareImagesAndShow(firstElementScreenShot, secondElementScreenShot);
 }
+
+
